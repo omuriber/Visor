@@ -230,14 +230,20 @@ document.getElementById('getLocationBtn').addEventListener('click', function() {
     }
 });
 
-// Calcular rutas a todos los puntos
+// Calcular rutas a los 3 puntos más cercanos
 document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
     if (!userLocation) return;
     
     // Limpiar rutas anteriores
     routesLayer.clearLayers();
     
-    // Recorrer todos los puntos
+    // Array para almacenar las rutas con sus distancias
+    const rutas = [];
+    
+    // Contador para rastrear el número de rutas completadas
+    let rutasCompletadas = 0;
+    
+    // Recorrer todos los puntos y obtener las distancias
     layer_Puntos_1.eachLayer(function(pointLayer) {
         const destino = pointLayer.getLatLng();
         
@@ -247,27 +253,49 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
             .then(data => {
                 if (data.routes && data.routes.length > 0) {
                     const ruta = data.routes[0].geometry;
+                    const distancia = data.routes[0].distance / 1000; // Convertir a km
                     
-                    // Añadir línea al mapa
-                    L.geoJSON(ruta, {
-                        style: {
-                            color: '#FF6B6B',
-                            weight: 4,
-                            opacity: 0.7
-                        }
-                    }).addTo(routesLayer);
+                    // Almacenar la ruta con su distancia y punto de destino
+                    rutas.push({
+                        ruta: ruta,
+                        distancia: distancia,
+                        destino: destino
+                    });
                     
-                    // Añadir popup con información de la ruta
-                    const distancia = (data.routes[0].distance / 1000).toFixed(2);
-                    const duracion = (data.routes[0].duration / 60).toFixed(2);
-                    pointLayer.bindPopup(`
-                        ${pointLayer.feature.properties.Nombre}<br>
-                        Distancia: ${distancia} km<br>
-                        Duración: ${duracion} minutos
-                    `);
+                    // Incrementar contador de rutas completadas
+                    rutasCompletadas++;
+                    
+                    // Si ya tenemos todas las rutas, ordenar y mostrar las 3 más cortas
+                    if (rutasCompletadas === layer_Puntos_1.getLayers().length) {
+                        // Ordenar rutas por distancia
+                        rutas.sort((a, b) => a.distancia - b.distancia);
+                        
+                        // Mostrar solo las 3 más cortas
+                        rutas.slice(0, 3).forEach((rutaInfo, index) => {
+                            // Crear capa de ruta
+                            const routeLayer = L.geoJSON(rutaInfo.ruta, {
+                                style: {
+                                    color: ['#007bff', '#28a745', '#ffc107'][index], // Colores distintos para cada ruta
+                                    weight: 5,
+                                    opacity: 0.7
+                                }
+                            }).addTo(routesLayer);
+                            
+                            // Agregar popup con información de distancia y posición
+                            routeLayer.bindPopup(`Ruta ${index + 1} - Distancia: ${rutaInfo.distancia.toFixed(2)} km`);
+                            
+                            // Agregar marcador en el destino con el número de ruta
+                            L.marker(rutaInfo.destino, {
+                                icon: L.divIcon({
+                                    className: 'route-number-marker',
+                                    html: `<div style="background: ${['#007bff', '#28a745', '#ffc107'][index]}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">${index + 1}</div>`
+                                })
+                            }).addTo(map).bindPopup(`Ruta ${index + 1} - Destino`);
+                        });
+                    }
                 }
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => console.error('Error al obtener ruta:', error));
     });
 });
         </script>
