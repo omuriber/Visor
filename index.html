@@ -172,6 +172,7 @@
 let userLocation = null;
 let userMarker = null;
 let routesLayer = L.layerGroup().addTo(map);
+const openRouteServiceKey = '5b3ce3597851110001cf624821c189289a80479a58e7994b3126e41'; // Clave de demo (limitada)
 
 // Obtener ubicación del usuario
 document.getElementById('getLocationBtn').addEventListener('click', function() {
@@ -219,7 +220,8 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
     function calculateDistance(pointLayer, index) {
         const destino = pointLayer.getLatLng();
         
-        fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${destino.lng},${destino.lat}?overview=full&geometries=geojson`)
+        // Usar OpenRouteService API para obtener la distancia
+        fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${openRouteServiceKey}&start=${userLocation[1]},${userLocation[0]}&end=${destino.lng},${destino.lat}`)
             .then(response => response.json())
             .then(data => {
                 if (data.routes && data.routes.length > 0) {
