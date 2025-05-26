@@ -47,6 +47,9 @@
         .leaflet-popup-content td {
             min-width: 75px;
         }
+        .leaflet-marker-icon {
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
         .leaflet-popup-content td img {
             max-height: 60vh;
             max-width: 60vw;
@@ -187,7 +190,6 @@
         .leaflet-popup-pane {
             z-index: 700;
         }
-
         .map-btn {
             position: absolute;
             left: 65px; /* Ajustado para estar después del control de zoom */
@@ -212,12 +214,9 @@
         .map-btn:hover {
             background: #f0f0f0;
         }
-
-#controls {
-    position: absolute;
-    top: 0px;
-    left: 0px;
-    z-index: 1000;
-}
-        
-    
+        #controls {
+            position: absolute;
+            top: 0px;
+            left: 0px;
+            z-index: 1000;
+        }
