@@ -305,33 +305,30 @@
                     .then(data => {
                         if (data.routes && data.routes.length > 0) {
                             const route = data.routes[0];
-                            
-                            // Convertir coordenadas de [lng, lat] a [lat, lng] para Leaflet
-                            const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
-                            
-                            // Crear la línea de ruta
-                            const routeLayer = L.polyline(coordinates, {
-                                color: routeColors[index],
-                                weight: 4,
-                                opacity: 0.8
-                            }).addTo(routesLayer);
-                            
-                            // Información de la ruta
                             const distancia = (route.distance / 1000).toFixed(2);
                             const duracion = Math.round(route.duration / 60);
-                            const nombre = item.layer.feature.properties.Nombre_com || 'Punto';
                             
-                            // Actualizar popup del punto con información de ruta
-                            const originalContent = item.layer.getPopup().getContent();
-                            const routeInfo = `<div style="border-top: 1px solid #ccc; padding-top: 5px; margin-top: 5px;">
-                                <strong>Ruta:</strong><br>
-                                Distancia: ${distancia} km<br>
-                                Tiempo: ${duracion} min
-                            </div>`;
+                            // Crear capa de ruta usando GeoJSON
+                            const routeLayer = L.geoJSON(route.geometry, {
+                                style: {
+                                    color: routeColors[index],
+                                    weight: 5,
+                                    opacity: 0.7
+                                }
+                            }).addTo(routesLayer);
                             
-                            item.layer.getPopup().setContent(originalContent + routeInfo);
+                            // Agregar popup con información de distancia
+                            routeLayer.bindPopup(`Ruta ${index + 1} - Distancia: ${distancia} km - Duración: ${duracion} min`);
                             
-                            console.log(`Ruta ${index + 1}: ${nombre} - ${distancia} km, ${duracion} min`);
+                            // Agregar marcador en el destino
+                            L.marker(item.destino, {
+                                icon: L.divIcon({
+                                    className: 'route-number-marker',
+                                    html: `<div style="background: ${routeColors[index]}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">${index + 1}</div>`
+                                })
+                            }).addTo(map).bindPopup(`Ruta ${index + 1} - Destino`);
+                            
+                            console.log(`Ruta ${index + 1}: ${distancia} km, ${duracion} min`);
                         }
                         
                         completedRoutes++;
