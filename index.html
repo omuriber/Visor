@@ -28,8 +28,9 @@
                 <button id="calculateRoutesBtn" class="map-btn" disabled>Calcular rutas</button>
             </div>
         </div>
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+        <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
         <script src="js/qgis2web_expressions.js"></script>
-        <script src="js/leaflet.js"></script>
         <script src="js/L.Control.Layers.Tree.min.js"></script>
         <script src="js/L.Control.Locate.min.js"></script>
         <script src="js/leaflet.rotatedMarker.js"></script>
@@ -172,7 +173,6 @@
 let userLocation = null;
 let userMarker = null;
 let routesLayer = L.layerGroup().addTo(map);
-const openRouteServiceKey = '5b3ce3597851110001cf624821c189289a80479a58e7994b3126e41'; // Clave de demo (limitada)
 
 // Obtener ubicación del usuario
 document.getElementById('getLocationBtn').addEventListener('click', function() {
@@ -219,13 +219,12 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
     // Función para calcular distancia a un punto
     function calculateDistance(pointLayer, index) {
         const destino = pointLayer.getLatLng();
-        
-        // Usar OpenRouteService API para obtener la distancia
-        fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${openRouteServiceKey}&start=${userLocation[1]},${userLocation[0]}&end=${destino.lng},${destino.lat}`)
+                // Usar Nominatim API de OpenStreetMap
+                fetch(`https://nominatim.openstreetmap.org/route?format=json&from=${userLocation[1]},${userLocation[0]}&to=${destino.lng},${destino.lat}&transportation_mode=car`)
             .then(response => response.json())
             .then(data => {
-                if (data.routes && data.routes.length > 0) {
-                    const distance = data.routes[0].distance;
+                if (data.route && data.route.length > 0) {
+                    const distance = data.route[0].distance;
                     distances.push({
                         layer: pointLayer,
                         distance: distance,
@@ -240,7 +239,13 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
                         // Dibujar solo las 3 más cercanas
                         distances.slice(0, 3).forEach(item => {
                             // Añadir línea al mapa
-                            L.geoJSON(item.layer.feature.geometry, {
+                            L.geoJSON({
+                                type: "Feature",
+                                geometry: {
+                                    type: "LineString",
+                                    coordinates: data.route[0].geometry
+                                }
+                            }, {
                                 style: {
                                     color: '#FF6B6B',
                                     weight: 4,
