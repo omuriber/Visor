@@ -219,12 +219,12 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
     // Función para calcular distancia a un punto
     function calculateDistance(pointLayer, index) {
         const destino = pointLayer.getLatLng();
-                // Usar Nominatim API de OpenStreetMap
-                fetch(`https://nominatim.openstreetmap.org/route?format=json&from=${userLocation[1]},${userLocation[0]}&to=${destino.lng},${destino.lat}&transportation_mode=car`)
+                // Usar GraphHopper API (más estable que Nominatim)
+                fetch(`https://graphhopper.com/api/1/route?point=${userLocation[0]},${userLocation[1]}&point=${destino.lat},${destino.lng}&vehicle=car&key=01234567-89ab-cdef-0123-456789abcdef`)
             .then(response => response.json())
             .then(data => {
-                if (data.route && data.route.length > 0) {
-                    const distance = data.route[0].distance;
+                if (data.paths && data.paths.length > 0) {
+                    const distance = data.paths[0].distance;
                     distances.push({
                         layer: pointLayer,
                         distance: distance,
@@ -243,7 +243,7 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
                                 type: "Feature",
                                 geometry: {
                                     type: "LineString",
-                                    coordinates: data.route[0].geometry
+                                    coordinates: data.paths[0].points.coordinates
                                 }
                             }, {
                                 style: {
