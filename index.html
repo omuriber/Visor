@@ -48,6 +48,7 @@
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        
         // remove popup's row if "visible-with-data"
         function removeEmptyRowsFromPopupContent(content, feature) {
          var tempDiv = document.createElement('div');
@@ -62,20 +63,22 @@
          }
          return tempDiv.innerHTML;
         }
+        
         // add class to format popup if it contains media
-		function addClassToPopupIfMedia(content, popup) {
-			var tempDiv = document.createElement('div');
-			tempDiv.innerHTML = content;
-			if (tempDiv.querySelector('td img')) {
-				popup._contentNode.classList.add('media');
-					// Delay to force the redraw
-					setTimeout(function() {
-						popup.update();
-					}, 10);
-			} else {
-				popup._contentNode.classList.remove('media');
-			}
-		}
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            if (tempDiv.querySelector('td img')) {
+                popup._contentNode.classList.add('media');
+                    // Delay to force the redraw
+                    setTimeout(function() {
+                        popup.update();
+                    }, 10);
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        
         var zoomControl = L.control.zoom({
             position: 'topleft'
         }).addTo(map);
@@ -99,6 +102,7 @@
         });
         layer_WazeWorld_0;
         map.addLayer(layer_WazeWorld_0);
+        
         function pop_Puntos_1(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
@@ -124,10 +128,10 @@
                     </tr>\
                 </table>';
             var content = removeEmptyRowsFromPopupContent(popupContent, feature);
-			layer.on('popupopen', function(e) {
-				addClassToPopupIfMedia(content, e.popup);
-			});
-			layer.bindPopup(content, { maxHeight: 400 });
+            layer.on('popupopen', function(e) {
+                addClassToPopupIfMedia(content, e.popup);
+            });
+            layer.bindPopup(content, { maxHeight: 400 });
         }
 
         function style_Puntos_1_0() {
@@ -170,109 +174,182 @@
         setBounds();
 
         // Variables globales
-let userLocation = null;
-let userMarker = null;
-let routesLayer = L.layerGroup().addTo(map);
+        let userLocation = null;
+        let userMarker = null;
+        let routesLayer = L.layerGroup().addTo(map);
 
-// Obtener ubicación del usuario
-document.getElementById('getLocationBtn').addEventListener('click', function() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            // Eliminar marcador anterior si existe
-            if (userMarker) {
-                map.removeLayer(userMarker);
+        // URL base para OSRM
+        const osrmUrl = 'https://router.project-osrm.org/route/v1';
+
+        // Función para calcular distancia Haversine
+        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Radio de la Tierra en metros
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                Math.cos(φ1) * Math.cos(φ2) *
+                Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+            return R * c; // Distancia en metros
+        }
+
+        // Obtener ubicación del usuario
+        document.getElementById('getLocationBtn').addEventListener('click', function() {
+            const btn = this;
+            btn.textContent = 'Obteniendo ubicación...';
+            btn.disabled = true;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    // Eliminar marcador anterior si existe
+                    if (userMarker) {
+                        map.removeLayer(userMarker);
+                    }
+                    
+                    userLocation = [position.coords.latitude, position.coords.longitude];
+                    
+                    // Añadir nuevo marcador
+                    userMarker = L.marker(userLocation, {
+                        icon: L.divIcon({
+                            className: 'custom-marker',
+                            html: '<div class="marker-dot"></div>',
+                            iconSize: [26, 26],
+                            iconAnchor: [13, 13]
+                        })
+                    }).addTo(map).bindPopup("Tu ubicación actual");
+                    
+                    // Centrar mapa en la ubicación
+                    map.setView(userLocation, 14);
+                    
+                    // Habilitar botón de calcular rutas
+                    document.getElementById('calculateRoutesBtn').disabled = false;
+                    btn.textContent = 'Ubicación obtenida';
+                    btn.disabled = false;
+                    
+                    console.log('Ubicación obtenida:', userLocation);
+                }, function(error) {
+                    console.error('Error al obtener ubicación:', error);
+                    btn.textContent = 'Error - Reintentar';
+                    btn.disabled = false;
+                    alert('No se pudo obtener la ubicación. Verifica los permisos del navegador.');
+                });
+            } else {
+                alert('Geolocalización no soportada por este navegador.');
+                btn.textContent = 'No soportado';
+            }
+        });
+
+        // Calcular rutas a los 3 puntos más cercanos
+        document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
+            if (!userLocation) {
+                alert('Primero debes obtener tu ubicación');
+                return;
             }
             
-            userLocation = [position.coords.latitude, position.coords.longitude];
-            document.getElementById('calculateRoutesBtn').disabled = false;
+            const btn = this;
+            btn.textContent = 'Calculando rutas...';
+            btn.disabled = true;
             
-            // Añadir nuevo marcador
-            userMarker = L.marker(userLocation, {
-                icon: L.divIcon({
-                    className: 'custom-marker',
-                    html: '<div class="marker-dot"></div>'
-                })
-            }).addTo(map).bindPopup("Tu ubicación actual");
+            // Limpiar rutas anteriores
+            routesLayer.clearLayers();
             
-            // Centrar mapa en la ubicación
-            map.setView(userLocation, 14);
-        });
-    }
-});
-
-// Calcular rutas a los 3 puntos más cercanos
-document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
-    if (!userLocation) {
-        console.error('No hay ubicación del usuario');
-        return;
-    }
-    
-    // Limpiar rutas anteriores
-    routesLayer.clearLayers();
-    
-    // Array para almacenar las distancias
-    let distances = [];
-    
-    // Recorrer todos los puntos para calcular distancias
-    const pointLayers = layer_Puntos_1.getLayers();
-    
-    // Función para calcular distancia a un punto
-    function calculateDistance(pointLayer, index) {
-        const destino = pointLayer.getLatLng();
-                // Usar GraphHopper API (más estable que Nominatim)
-                fetch(`https://graphhopper.com/api/1/route?point=${userLocation[0]},${userLocation[1]}&point=${destino.lat},${destino.lng}&vehicle=car&key=01234567-89ab-cdef-0123-456789abcdef`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.paths && data.paths.length > 0) {
-                    const distance = data.paths[0].distance;
+            // Array para almacenar las distancias
+            let distances = [];
+            
+            // Recorrer todos los puntos para calcular distancias
+            layer_Puntos_1.eachLayer(function(layer) {
+                if (layer.getLatLng) {
+                    const destino = layer.getLatLng();
+                    const distance = calculateHaversineDistance(
+                        userLocation[0], userLocation[1],
+                        destino.lat, destino.lng
+                    );
+                    
                     distances.push({
-                        layer: pointLayer,
+                        layer: layer,
                         distance: distance,
                         destino: destino
                     });
-                    
-                    // Si ya tenemos todas las distancias, ordenar y dibujar las 3 más cercanas
-                    if (distances.length === pointLayers.length) {
-                        // Ordenar por distancia
-                        distances.sort((a, b) => a.distance - b.distance);
-                        
-                        // Dibujar solo las 3 más cercanas
-                        distances.slice(0, 3).forEach(item => {
-                            // Añadir línea al mapa
-                            L.geoJSON({
-                                type: "Feature",
-                                geometry: {
-                                    type: "LineString",
-                                    coordinates: data.paths[0].points.coordinates
-                                }
-                            }, {
-                                style: {
-                                    color: '#FF6B6B',
-                                    weight: 4,
-                                    opacity: 0.7
-                                }
+                }
+            });
+            
+            // Ordenar por distancia y obtener los 3 más cercanos
+            distances.sort((a, b) => a.distance - b.distance);
+            const closestPoints = distances.slice(0, 3);
+            
+            console.log('Puntos más cercanos:', closestPoints.map(p => ({
+                name: p.layer.feature.properties.Nombre_com,
+                distance: (p.distance / 1000).toFixed(2) + ' km'
+            })));
+            
+            // Colores para las rutas
+            const routeColors = ['#FF6B6B', '#4ECDC4', '#45B7D1'];
+            
+            // Hacer solicitudes a OSRM para cada punto
+            let completedRoutes = 0;
+            
+            closestPoints.forEach((item, index) => {
+                const url = `${osrmUrl}/driving/${userLocation[1]},${userLocation[0]};${item.destino.lng},${item.destino.lat}?overview=full&geometries=geojson`;
+                
+                fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.routes && data.routes.length > 0) {
+                            const route = data.routes[0];
+                            
+                            // Convertir coordenadas de [lng, lat] a [lat, lng] para Leaflet
+                            const coordinates = route.geometry.coordinates.map(coord => [coord[1], coord[0]]);
+                            
+                            // Crear la línea de ruta
+                            const routeLayer = L.polyline(coordinates, {
+                                color: routeColors[index],
+                                weight: 4,
+                                opacity: 0.8
                             }).addTo(routesLayer);
                             
-                            // Añadir popup con información de la ruta
-                            const distancia = (item.distance / 1000).toFixed(2);
-                            item.layer.bindPopup(`
-                                ${item.layer.feature.properties.Nombre}<br>
-                                Distancia: ${distancia} km
-                            `);
-                        });
-                    }
-                } else {
-                    console.error('No se encontró ruta para este punto');
-                }
-            })
-            .catch(error => {
-                console.error('Error al obtener distancia:', error);
+                            // Información de la ruta
+                            const distancia = (route.distance / 1000).toFixed(2);
+                            const duracion = Math.round(route.duration / 60);
+                            const nombre = item.layer.feature.properties.Nombre_com || 'Punto';
+                            
+                            // Actualizar popup del punto con información de ruta
+                            const originalContent = item.layer.getPopup().getContent();
+                            const routeInfo = `<div style="border-top: 1px solid #ccc; padding-top: 5px; margin-top: 5px;">
+                                <strong>Ruta:</strong><br>
+                                Distancia: ${distancia} km<br>
+                                Tiempo: ${duracion} min
+                            </div>`;
+                            
+                            item.layer.getPopup().setContent(originalContent + routeInfo);
+                            
+                            console.log(`Ruta ${index + 1}: ${nombre} - ${distancia} km, ${duracion} min`);
+                        }
+                        
+                        completedRoutes++;
+                        if (completedRoutes === closestPoints.length) {
+                            btn.textContent = 'Rutas calculadas';
+                            btn.disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error al obtener ruta ${index + 1}:`, error);
+                        completedRoutes++;
+                        if (completedRoutes === closestPoints.length) {
+                            btn.textContent = 'Calcular rutas';
+                            btn.disabled = false;
+                        }
+                    });
             });
-    }
-    
-    // Iniciar cálculo de distancias para todos los puntos
-    pointLayers.forEach(calculateDistance);
-});
+        });
         </script>
     </body>
 </html>
