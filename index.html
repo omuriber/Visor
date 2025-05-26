@@ -179,7 +179,7 @@
         let routesLayer = L.layerGroup().addTo(map);
 
         // URL base para OpenRouteService
-        const openRouteServiceUrl = 'https://api.openrouteservice.org/v2/directions/driving-car'
+        const url = 'https://router.project-osrm.org/route/v1/driving/[start_lon],[start_lat];[via_lon],[via_lat];[end_lon],[end_lat]';
 
         // Función para calcular distancia Haversine
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
