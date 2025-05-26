@@ -156,11 +156,12 @@
             pane: 'pane_Puntos_1',
             onEachFeature: pop_Puntos_1,
             pointToLayer: function (feature, latlng) {
-                var context = {
-                    feature: feature,
-                    variables: {}
-                };
-                return L.circleMarker(latlng, style_Puntos_1_0(feature));
+                return L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'custom-point',
+                        html: '<div class="point-dot"></div>'
+                    })
+                });
             },
         });
         bounds_group.addLayer(layer_Puntos_1);
@@ -186,10 +187,9 @@ document.getElementById('getLocationBtn').addEventListener('click', function() {
             
             // Añadir nuevo marcador
             userMarker = L.marker(userLocation, {
-                icon: L.icon({
-                    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-                    iconSize: [25, 41],
-                    iconAnchor: [12, 41]
+                icon: L.divIcon({
+                    className: 'custom-marker',
+                    html: '<div class="marker-dot"></div>'
                 })
             }).addTo(map).bindPopup("Tu ubicación actual");
             
