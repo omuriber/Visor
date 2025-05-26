@@ -47,35 +47,6 @@
         .leaflet-popup-content td {
             min-width: 75px;
         }
-        .leaflet-marker-icon {
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .custom-point .point-dot {
-            width: 10px;
-            height: 10px;
-            background: #8fb8ec;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid rgb(0, 0, 0);
-            transition: all 0.3s ease;
-        }
-        .custom-point .point-dot:hover {
-            transform: scale(1.2);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
-        .custom-marker .marker-dot {
-            width: 20px;
-            height: 20px;
-            background: #3e60aa;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            border: 2px solid white;
-            transition: all 0.3s ease;
-        }
-        .custom-marker .marker-dot:hover {
-            transform: scale(1.2);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-        }
         .leaflet-popup-content td img {
             max-height: 60vh;
             max-width: 60vw;
@@ -216,6 +187,7 @@
         .leaflet-popup-pane {
             z-index: 700;
         }
+
         .map-btn {
             position: absolute;
             left: 65px; /* Ajustado para estar después del control de zoom */
@@ -240,9 +212,12 @@
         .map-btn:hover {
             background: #f0f0f0;
         }
-        #controls {
-            position: absolute;
-            top: 0px;
-            left: 0px;
-            z-index: 1000;
-        }
+
+#controls {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    z-index: 1000;
+}
+        
+    

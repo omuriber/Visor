@@ -12,11 +12,9 @@
         <link rel="stylesheet" href="css/qgis2web.css">
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
         <style>
-        html, body, #map {
-            width: 100%;
-            height: 100%;
-            padding: 0;
-            margin: 0;
+        #map {
+            width: 1300px;
+            height: 887px;
         }
         </style>
         <title></title>
@@ -28,9 +26,8 @@
                 <button id="calculateRoutesBtn" class="map-btn" disabled>Calcular rutas</button>
             </div>
         </div>
-        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-        <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
         <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
         <script src="js/L.Control.Layers.Tree.min.js"></script>
         <script src="js/L.Control.Locate.min.js"></script>
         <script src="js/leaflet.rotatedMarker.js"></script>
@@ -42,13 +39,27 @@
         <script src="js/labels.js"></script>
         <script src="data/Puntos_1.js"></script>
         <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+        }
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
-        })
+        }).fitBounds([[4.404342309535541,-74.30517693270754],[4.823709837911118,-73.68810336463221]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
-        
         // remove popup's row if "visible-with-data"
         function removeEmptyRowsFromPopupContent(content, feature) {
          var tempDiv = document.createElement('div');
@@ -63,81 +74,68 @@
          }
          return tempDiv.innerHTML;
         }
-        
         // add class to format popup if it contains media
-        function addClassToPopupIfMedia(content, popup) {
-            var tempDiv = document.createElement('div');
-            tempDiv.innerHTML = content;
-            if (tempDiv.querySelector('td img')) {
-                popup._contentNode.classList.add('media');
-                    // Delay to force the redraw
-                    setTimeout(function() {
-                        popup.update();
-                    }, 10);
-            } else {
-                popup._contentNode.classList.remove('media');
-            }
-        }
-        
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
         var zoomControl = L.control.zoom({
             position: 'topleft'
         }).addTo(map);
         L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
         var bounds_group = new L.featureGroup([]);
         function setBounds() {
-            if (bounds_group.getLayers().length) {
-                map.fitBounds(bounds_group.getBounds());
-            }
         }
-        map.createPane('pane_WazeWorld_0');
-        map.getPane('pane_WazeWorld_0').style.zIndex = 400;
-        var layer_WazeWorld_0 = L.tileLayer('https://worldtiles3.waze.com/tiles/{z}/{x}/{y}.png', {
-            pane: 'pane_WazeWorld_0',
+        map.createPane('pane_GoogleMaps_0');
+        map.getPane('pane_GoogleMaps_0').style.zIndex = 400;
+        var layer_GoogleMaps_0 = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMaps_0',
             opacity: 1.0,
             attribution: '',
             minZoom: 1,
             maxZoom: 28,
-            minNativeZoom: 0,
-            maxNativeZoom: 20
         });
-        layer_WazeWorld_0;
-        map.addLayer(layer_WazeWorld_0);
-        
+        layer_GoogleMaps_0;
+        map.addLayer(layer_GoogleMaps_0);
         function pop_Puntos_1(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                },
+                mouseover: highlightFeature,
+            });
             var popupContent = '<table>\
                     <tr>\
-                        <td class="visible-with-data" id="Nombre_com" colspan="2"><strong>Nombre</strong><br />' + (feature.properties['Nombre_com'] !== null ? autolinker.link(String(feature.properties['Nombre_com']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                        <td colspan="2">' + (feature.properties['Nombre'] !== null ? autolinker.link(String(feature.properties['Nombre']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
                     <tr>\
-                        <td class="visible-with-data" id="Número__1" colspan="2"><strong>Número Telefonico</strong><br />' + (feature.properties['Número__1'] !== null ? autolinker.link(String(feature.properties['Número__1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Modalidad" colspan="2"><strong>Modalidad</strong><br />' + (feature.properties['Modalidad'] !== null ? autolinker.link(String(feature.properties['Modalidad']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Barrio_de" colspan="2"><strong>Barrio</strong><br />' + (feature.properties['Barrio_de'] !== null ? autolinker.link(String(feature.properties['Barrio_de']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Dirección" colspan="2"><strong>Dirección</strong><br />' + (feature.properties['Dirección'] !== null ? autolinker.link(String(feature.properties['Dirección']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Día_en_qu" colspan="2"><strong>Día</strong><br />' + (feature.properties['Día_en_qu'] !== null ? autolinker.link(String(feature.properties['Día_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Hora_en_qu" colspan="2"><strong>Hora</strong><br />' + (feature.properties['Hora_en_qu'] !== null ? autolinker.link(String(feature.properties['Hora_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                        <td colspan="2">' + (feature.properties['Direccion'] !== null ? autolinker.link(String(feature.properties['Direccion']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
                     </tr>\
                 </table>';
             var content = removeEmptyRowsFromPopupContent(popupContent, feature);
-            layer.on('popupopen', function(e) {
-                addClassToPopupIfMedia(content, e.popup);
-            });
-            layer.bindPopup(content, { maxHeight: 400 });
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
         }
 
         function style_Puntos_1_0() {
             return {
                 pane: 'pane_Puntos_1',
-                radius: 5.0,
+                radius: 4.0,
                 opacity: 1,
                 color: 'rgba(35,35,35,1.0)',
                 dashArray: '',
@@ -146,7 +144,7 @@
                 weight: 1,
                 fill: true,
                 fillOpacity: 1,
-                fillColor: 'rgba(152,125,183,1.0)',
+                fillColor: 'rgba(190,207,80,1.0)',
                 interactive: true,
             }
         }
@@ -161,12 +159,11 @@
             pane: 'pane_Puntos_1',
             onEachFeature: pop_Puntos_1,
             pointToLayer: function (feature, latlng) {
-                return L.marker(latlng, {
-                    icon: L.divIcon({
-                        className: 'custom-point',
-                        html: '<div class="point-dot"></div>'
-                    })
-                });
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_Puntos_1_0(feature));
             },
         });
         bounds_group.addLayer(layer_Puntos_1);
@@ -174,179 +171,133 @@
         setBounds();
 
         // Variables globales
-        let userLocation = null;
-        let userMarker = null;
-        let routesLayer = L.layerGroup().addTo(map);
+let userLocation = null;
+let userMarker = null;
+let routesLayer = L.layerGroup().addTo(map);
 
-        // URL base para OSRM
-        const osrmUrl = 'https://router.project-osrm.org/route/v1';
-
-        // Función para calcular distancia Haversine
-        function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radio de la Tierra en metros
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
-
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                Math.cos(φ1) * Math.cos(φ2) *
-                Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c; // Distancia en metros
-        }
-
-        // Obtener ubicación del usuario
-        document.getElementById('getLocationBtn').addEventListener('click', function() {
-            const btn = this;
-            btn.textContent = 'Obteniendo ubicación...';
-            btn.disabled = true;
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    // Eliminar marcador anterior si existe
-                    if (userMarker) {
-                        map.removeLayer(userMarker);
-                    }
-                    
-                    userLocation = [position.coords.latitude, position.coords.longitude];
-                    
-                    // Añadir nuevo marcador
-                    userMarker = L.marker(userLocation, {
-                        icon: L.divIcon({
-                            className: 'custom-marker',
-                            html: '<div class="marker-dot"></div>',
-                            iconSize: [26, 26],
-                            iconAnchor: [13, 13]
-                        })
-                    }).addTo(map).bindPopup("Tu ubicación actual");
-                    
-                    // Centrar mapa en la ubicación
-                    map.setView(userLocation, 14);
-                    
-                    // Habilitar botón de calcular rutas
-                    document.getElementById('calculateRoutesBtn').disabled = false;
-                    btn.textContent = 'Ubicación obtenida';
-                    btn.disabled = false;
-                    
-                    console.log('Ubicación obtenida:', userLocation);
-                }, function(error) {
-                    console.error('Error al obtener ubicación:', error);
-                    btn.textContent = 'Error - Reintentar';
-                    btn.disabled = false;
-                    alert('No se pudo obtener la ubicación. Verifica los permisos del navegador.');
-                });
-            } else {
-                alert('Geolocalización no soportada por este navegador.');
-                btn.textContent = 'No soportado';
+// Obtener ubicación del usuario
+document.getElementById('getLocationBtn').addEventListener('click', function() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                // Eliminar marcador anterior si existe
+                if (userMarker) {
+                    map.removeLayer(userMarker);
+                }
+                
+                userLocation = [position.coords.latitude, position.coords.longitude];
+                document.getElementById('calculateRoutesBtn').disabled = false;
+                
+                // Añadir nuevo marcador
+                userMarker = L.marker(userLocation, {
+                    icon: L.icon({
+                        iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+                        iconSize: [25, 41],
+                        iconAnchor: [12, 41]
+                    })
+                }).addTo(map).bindPopup("Tu ubicación actual");
+                
+                // Centrar mapa en la ubicación
+                map.setView(userLocation, 14);
+            },
+            function(error) {
+                let errorMessage = '';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = 'Permisos de geolocalización denegados';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = 'Ubicación no disponible';
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = 'Tiempo de espera agotado para obtener la ubicación';
+                        break;
+                    default:
+                        errorMessage = 'Error desconocido al obtener la ubicación';
+                }
+                console.error('Error de geolocalización:', errorMessage);
+                alert('Error al obtener tu ubicación: ' + errorMessage);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
-        });
+        );
+    } else {
+        console.error('Geolocalización no soportada por el navegador');
+        alert('Tu navegador no soporta geolocalización');
+    }
+});
 
-        // Calcular rutas a los 3 puntos más cercanos
-        document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
-            if (!userLocation) {
-                alert('Primero debes obtener tu ubicación');
-                return;
-            }
-            
-            const btn = this;
-            btn.textContent = 'Calculando rutas...';
-            btn.disabled = true;
-            
-            // Limpiar rutas anteriores
-            routesLayer.clearLayers();
-            
-            // Array para almacenar las distancias
-            let distances = [];
-            
-            // Recorrer todos los puntos para calcular distancias
-            layer_Puntos_1.eachLayer(function(layer) {
-                if (layer.getLatLng) {
-                    const destino = layer.getLatLng();
-                    const distance = calculateHaversineDistance(
-                        userLocation[0], userLocation[1],
-                        destino.lat, destino.lng
-                    );
+// Calcular rutas a los 3 puntos más cercanos
+document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
+    if (!userLocation) return;
+    
+    // Limpiar rutas anteriores
+    routesLayer.clearLayers();
+    
+    // Array para almacenar las rutas con sus distancias
+    const rutas = [];
+    
+    // Contador para rastrear el número de rutas completadas
+    let rutasCompletadas = 0;
+    
+    // Recorrer todos los puntos y obtener las distancias
+    layer_Puntos_1.eachLayer(function(pointLayer) {
+        const destino = pointLayer.getLatLng();
+        
+        // Usar API OSRM para obtener la ruta
+        fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${destino.lng},${destino.lat}?overview=full&geometries=geojson`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.routes && data.routes.length > 0) {
+                    const ruta = data.routes[0].geometry;
+                    const distancia = data.routes[0].distance / 1000; // Convertir a km
                     
-                    distances.push({
-                        layer: layer,
-                        distance: distance,
+                    // Almacenar la ruta con su distancia y punto de destino
+                    rutas.push({
+                        ruta: ruta,
+                        distancia: distancia,
                         destino: destino
                     });
-                }
-            });
-            
-            // Ordenar por distancia y obtener los 3 más cercanos
-            distances.sort((a, b) => a.distance - b.distance);
-            const closestPoints = distances.slice(0, 3);
-            
-            console.log('Puntos más cercanos:', closestPoints.map(p => ({
-                name: p.layer.feature.properties.Nombre_com,
-                distance: (p.distance / 1000).toFixed(2) + ' km'
-            })));
-            
-            // Colores para las rutas
-            const routeColors = ['#FF6B6B', '#4ECDC4', '#45B7D1'];
-            
-            // Hacer solicitudes a OSRM para cada punto
-            let completedRoutes = 0;
-            
-            closestPoints.forEach((item, index) => {
-                const url = `${osrmUrl}/driving/${userLocation[1]},${userLocation[0]};${item.destino.lng},${item.destino.lat}?overview=full&geometries=geojson`;
-                
-                fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.routes && data.routes.length > 0) {
-                            const route = data.routes[0];
-                            const distancia = (route.distance / 1000).toFixed(2);
-                            const duracion = Math.round(route.duration / 60);
-                            
-                            // Crear capa de ruta usando GeoJSON
-                            const routeLayer = L.geoJSON(route.geometry, {
+                    
+                    // Incrementar contador de rutas completadas
+                    rutasCompletadas++;
+                    
+                    // Si ya tenemos todas las rutas, ordenar y mostrar las 3 más cortas
+                    if (rutasCompletadas === layer_Puntos_1.getLayers().length) {
+                        // Ordenar rutas por distancia
+                        rutas.sort((a, b) => a.distancia - b.distancia);
+                        
+                        // Mostrar solo las 3 más cortas
+                        rutas.slice(0, 3).forEach((rutaInfo, index) => {
+                            // Crear capa de ruta
+                            const routeLayer = L.geoJSON(rutaInfo.ruta, {
                                 style: {
-                                    color: routeColors[index],
+                                    color: ['#007bff', '#28a745', '#ffc107'][index], // Colores distintos para cada ruta
                                     weight: 5,
                                     opacity: 0.7
                                 }
                             }).addTo(routesLayer);
                             
-                            // Agregar popup con información de distancia
-                            routeLayer.bindPopup(`Ruta ${index + 1} - Distancia: ${distancia} km - Duración: ${duracion} min`);
+                            // Agregar popup con información de distancia y posición
+                            routeLayer.bindPopup(`Ruta ${index + 1} - Distancia: ${rutaInfo.distancia.toFixed(2)} km`);
                             
-                            // Agregar marcador en el destino
-                            L.marker(item.destino, {
+                            // Agregar marcador en el destino con el número de ruta
+                            L.marker(rutaInfo.destino, {
                                 icon: L.divIcon({
                                     className: 'route-number-marker',
-                                    html: `<div style="background: ${routeColors[index]}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">${index + 1}</div>`
+                                    html: `<div style="background: ${['#007bff', '#28a745', '#ffc107'][index]}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">${index + 1}</div>`
                                 })
                             }).addTo(map).bindPopup(`Ruta ${index + 1} - Destino`);
-                            
-                            console.log(`Ruta ${index + 1}: ${distancia} km, ${duracion} min`);
-                        }
-                        
-                        completedRoutes++;
-                        if (completedRoutes === closestPoints.length) {
-                            btn.textContent = 'Rutas calculadas';
-                            btn.disabled = false;
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Error al obtener ruta ${index + 1}:`, error);
-                        completedRoutes++;
-                        if (completedRoutes === closestPoints.length) {
-                            btn.textContent = 'Calcular rutas';
-                            btn.disabled = false;
-                        }
-                    });
-            });
-        });
+                        });
+                    }
+                }
+            })
+            .catch(error => console.error('Error al obtener ruta:', error));
+    });
+});
         </script>
     </body>
 </html>
