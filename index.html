@@ -201,7 +201,10 @@ document.getElementById('getLocationBtn').addEventListener('click', function() {
 
 // Calcular rutas a los 3 puntos más cercanos
 document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
-    if (!userLocation) return;
+    if (!userLocation) {
+        console.error('No hay ubicación del usuario');
+        return;
+    }
     
     // Limpiar rutas anteriores
     routesLayer.clearLayers();
@@ -210,10 +213,12 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
     let distances = [];
     
     // Recorrer todos los puntos para calcular distancias
-    layer_Puntos_1.eachLayer(function(pointLayer) {
+    const pointLayers = layer_Puntos_1.getLayers();
+    
+    // Función para calcular distancia a un punto
+    function calculateDistance(pointLayer, index) {
         const destino = pointLayer.getLatLng();
         
-        // Usar API OSRM para obtener la distancia
         fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${destino.lng},${destino.lat}?overview=full&geometries=geojson`)
             .then(response => response.json())
             .then(data => {
@@ -226,47 +231,40 @@ document.getElementById('calculateRoutesBtn').addEventListener('click', function
                     });
                     
                     // Si ya tenemos todas las distancias, ordenar y dibujar las 3 más cercanas
-                    if (distances.length === layer_Puntos_1.getLayers().length) {
+                    if (distances.length === pointLayers.length) {
                         // Ordenar por distancia
                         distances.sort((a, b) => a.distance - b.distance);
                         
                         // Dibujar solo las 3 más cercanas
                         distances.slice(0, 3).forEach(item => {
-                            // Obtener la geometría de la ruta desde el objeto data
-                            fetch(`https://router.project-osrm.org/route/v1/driving/${userLocation[1]},${userLocation[0]};${item.destino.lng},${item.destino.lat}?overview=full&geometries=geojson`)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.routes && data.routes.length > 0) {
-                                        const ruta = data.routes[0].geometry;
-                                        
-                                        // Añadir línea al mapa
-                                        L.geoJSON(ruta, {
-                                            style: {
-                                                color: '#FF6B6B',
-                                                weight: 4,
-                                                opacity: 0.7
-                                            }
-                                        }).addTo(routesLayer);
-                                        
-                                        // Añadir popup con información de la ruta
-                                        const distancia = (item.distance / 1000).toFixed(2);
-                                        item.layer.bindPopup(`
-                                            ${item.layer.feature.properties.Nombre}<br>
-                                            Distancia: ${distancia} km
-                                        `);
-                                    } else {
-                                        console.error('No se encontró ruta para este punto');
-                                    }
-                                })
-                                .catch(error => {
-                                    console.error('Error al obtener ruta:', error);
-                                });
+                            // Añadir línea al mapa
+                            L.geoJSON(item.layer.feature.geometry, {
+                                style: {
+                                    color: '#FF6B6B',
+                                    weight: 4,
+                                    opacity: 0.7
+                                }
+                            }).addTo(routesLayer);
+                            
+                            // Añadir popup con información de la ruta
+                            const distancia = (item.distance / 1000).toFixed(2);
+                            item.layer.bindPopup(`
+                                ${item.layer.feature.properties.Nombre}<br>
+                                Distancia: ${distancia} km
+                            `);
                         });
                     }
+                } else {
+                    console.error('No se encontró ruta para este punto');
                 }
             })
-            .catch(error => console.error('Error:', error));
-    });
+            .catch(error => {
+                console.error('Error al obtener distancia:', error);
+            });
+    }
+    
+    // Iniciar cálculo de distancias para todos los puntos
+    pointLayers.forEach(calculateDistance);
 });
         </script>
     </body>
