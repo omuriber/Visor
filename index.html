@@ -18,8 +18,12 @@
             padding: 0;
             margin: 0;
         }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
         </style>
-        <title></title>
+        <title>Mapa Grupos</title>
     </head>
     <body>
         <div id="map">
@@ -27,6 +31,7 @@
                 <button id="getLocationBtn" class="map-btn">Obtener ubicación</button>
                 <button id="calculateRoutesBtn" class="map-btn" disabled>Calcular rutas</button>
             </div>
+            <div id="loadingIndicator" class="loading-indicator">Calculando rutas...</div>
         </div>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
         <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
@@ -104,34 +109,44 @@
         map.addLayer(layer_WazeWorld_0);
         
         function pop_Puntos_1(feature, layer) {
-            var popupContent = '<table>\
-                    <tr>\
-                        <td class="visible-with-data" id="Nombre_com" colspan="2"><strong>Nombre</strong><br />' + (feature.properties['Nombre_com'] !== null ? autolinker.link(String(feature.properties['Nombre_com']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Número__1" colspan="2"><strong>Número Telefonico</strong><br />' + (feature.properties['Número__1'] !== null ? autolinker.link(String(feature.properties['Número__1']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Modalidad" colspan="2"><strong>Modalidad</strong><br />' + (feature.properties['Modalidad'] !== null ? autolinker.link(String(feature.properties['Modalidad']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Barrio_de" colspan="2"><strong>Barrio</strong><br />' + (feature.properties['Barrio_de'] !== null ? autolinker.link(String(feature.properties['Barrio_de']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Dirección" colspan="2"><strong>Dirección</strong><br />' + (feature.properties['Dirección'] !== null ? autolinker.link(String(feature.properties['Dirección']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Día_en_qu" colspan="2"><strong>Día</strong><br />' + (feature.properties['Día_en_qu'] !== null ? autolinker.link(String(feature.properties['Día_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td class="visible-with-data" id="Hora_en_qu" colspan="2"><strong>Hora</strong><br />' + (feature.properties['Hora_en_qu'] !== null ? autolinker.link(String(feature.properties['Hora_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                </table>';
-            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
-            layer.on('popupopen', function(e) {
-                addClassToPopupIfMedia(content, e.popup);
-            });
-            layer.bindPopup(content, { maxHeight: 400 });
+        var popupContent = '<table>\
+        <tr>\
+            <td class="visible-with-data" id="Nombre_com" colspan="2"><strong>Nombre</strong><br />' + (feature.properties['Nombre_com'] !== null ? autolinker.link(String(feature.properties['Nombre_com']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Número__1" colspan="2">\
+                <div style="margin: 5px 0; display: flex; align-items: center;">\
+                    <span style="margin-right: 10px;"><strong>Número Telefonico:</strong> ' + (feature.properties['Número__1'] !== null ? autolinker.link(String(feature.properties['Número__1']).replace(/'/g, '\'').toLocaleString()) : '') + '</span>\
+                    <button onclick="copyText(\'' + feature.properties['Número__1'] + '\')" style="padding: 2px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Copiar</button>\
+                </div>\
+            </td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Modalidad" colspan="2"><strong>Modalidad</strong><br />' + (feature.properties['Modalidad'] !== null ? autolinker.link(String(feature.properties['Modalidad']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Barrio_de" colspan="2"><strong>Barrio</strong><br />' + (feature.properties['Barrio_de'] !== null ? autolinker.link(String(feature.properties['Barrio_de']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Dirección" colspan="2">\
+                <div style="margin: 5px 0; display: flex; align-items: center;">\
+                    <span style="margin-right: 10px;"><strong>Dirección:</strong> ' + (feature.properties['Dirección'] !== null ? autolinker.link(String(feature.properties['Dirección']).replace(/'/g, '\'').toLocaleString()) : '') + '</span>\
+                    <button onclick="copyText(\'' + feature.properties['Dirección'] + '\')" style="padding: 2px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Copiar</button>\
+                </div>\
+            </td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Día_en_qu" colspan="2"><strong>Día</strong><br />' + (feature.properties['Día_en_qu'] !== null ? autolinker.link(String(feature.properties['Día_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+        </tr>\
+        <tr>\
+            <td class="visible-with-data" id="Hora_en_qu" colspan="2"><strong>Hora</strong><br />' + (feature.properties['Hora_en_qu'] !== null ? autolinker.link(String(feature.properties['Hora_en_qu']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+        </tr>\
+        </table>';
+        var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+        layer.on('popupopen', function(e) {
+        addClassToPopupIfMedia(content, e.popup);
+        });
+        layer.bindPopup(content, { maxHeight: 400 });
         }
 
         function style_Puntos_1_0() {
@@ -148,6 +163,63 @@
                 fillOpacity: 1,
                 fillColor: 'rgba(152,125,183,1.0)',
                 interactive: true,
+                onClick: function(e) {
+                    const feature = e.target.feature;
+                    const contextMenu = document.createElement('div');
+                    contextMenu.style.cssText = `
+                        position: absolute;
+                        background: white;
+                        padding: 8px;
+                        border-radius: 4px;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                        z-index: 1000;
+                    `;
+
+                    const menuItems = [];
+                    
+                    if (feature.properties['Dirección']) {
+                        const direccionItem = document.createElement('div');
+                        direccionItem.textContent = 'Copiar Dirección';
+                        direccionItem.style.cssText = 'padding: 4px 8px; cursor: pointer;';
+                        direccionItem.onclick = () => {
+                            copyText(feature.properties['Dirección']);
+                            contextMenu.remove();
+                        };
+                        menuItems.push(direccionItem);
+                    }
+
+                    if (feature.properties['Número__1']) {
+                        const numeroItem = document.createElement('div');
+                        numeroItem.textContent = 'Copiar Número';
+                        numeroItem.style.cssText = 'padding: 4px 8px; cursor: pointer;';
+                        numeroItem.onclick = () => {
+                            copyText(feature.properties['Número__1']);
+                            contextMenu.remove();
+                        };
+                        menuItems.push(numeroItem);
+                    }
+
+                    menuItems.forEach(item => contextMenu.appendChild(item));
+                    
+                    const container = document.body;
+                    const rect = e.target.getPopup().getElement().getBoundingClientRect();
+                    const pos = {
+                        x: rect.left + rect.width / 2,
+                        y: rect.top + rect.height + 10
+                    };
+                    
+                    contextMenu.style.left = pos.x + 'px';
+                    contextMenu.style.top = pos.y + 'px';
+                    container.appendChild(contextMenu);
+                    
+                    // Eliminar el menú al hacer clic fuera
+                    container.addEventListener('click', function handleClick(event) {
+                        if (!contextMenu.contains(event.target)) {
+                            contextMenu.remove();
+                            container.removeEventListener('click', handleClick);
+                        }
+                    });
+                }
             }
         }
         map.createPane('pane_Puntos_1');
@@ -177,13 +249,21 @@
         let userLocation = null;
         let userMarker = null;
         let routesLayer = L.layerGroup().addTo(map);
+        let routeMarkers = L.layerGroup().addTo(map);
 
-        // URL base para OpenRouteService
-        const url = 'https://router.project-osrm.org/route/v1/driving/[start_lon],[start_lat];[via_lon],[via_lat];[end_lon],[end_lat]';
+        // Configuración de colores y API
+        const routeColors = ['#FF6B6B', '#4ECDC4', '#45B7D1']; // Rojo, Turquesa, Azul
+        const routeNames = ['Primera', 'Segunda', 'Tercera'];
+        const OSRM_BASE_URL = 'https://router.project-osrm.org/route/v1/driving';
 
-        // Función para calcular distancia Haversine
+        // Función para mostrar/ocultar indicador de carga
+        function showLoading(show) {
+            document.getElementById('loadingIndicator').style.display = show ? 'block' : 'none';
+        }
+
+        // Función para calcular distancia Haversine (línea recta)
         function calculateHaversineDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371000; // Radio de la Tierra en metros
+            const R = 6371; // Radio de la Tierra en km
             const φ1 = lat1 * Math.PI/180;
             const φ2 = lat2 * Math.PI/180;
             const Δφ = (lat2-lat1) * Math.PI/180;
@@ -194,7 +274,126 @@
                 Math.sin(Δλ/2) * Math.sin(Δλ/2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-            return R * c; // Distancia en metros
+            return R * c; // Distancia en kilómetros
+        }
+
+        // Función para obtener puntos más cercanos por distancia en línea recta
+        function getClosestPoints(limit = 3) {
+            if (!userLocation) return [];
+            
+            return layer_Puntos_1.getLayers()
+                .map(layer => ({
+                    layer,
+                    destino: layer.getLatLng(),
+                    distance: calculateHaversineDistance(
+                        userLocation[0], userLocation[1],
+                        layer.getLatLng().lat, layer.getLatLng().lng
+                    ),
+                    properties: layer.feature.properties
+                }))
+                .sort((a, b) => a.distance - b.distance)
+                .slice(0, limit);
+        }
+
+        // Función para obtener ruta usando OSRM
+        async function getRouteFromOSRM(start, end) {
+            const url = `${OSRM_BASE_URL}/${start[1]},${start[0]};${end.lng},${end.lat}?overview=full&geometries=geojson&steps=false`;
+            
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                if (data.routes && data.routes.length > 0) {
+                    return {
+                        geometry: data.routes[0].geometry,
+                        distance: data.routes[0].distance / 1000, // Convertir a km
+                        duration: data.routes[0].duration / 60, // Convertir a minutos
+                        destination: end
+                    };
+                } else {
+                    throw new Error('No se encontró ruta');
+                }
+            } catch (error) {
+                console.error('Error al obtener ruta de OSRM:', error);
+                throw error;
+            }
+        }
+
+        // Función para crear y mostrar la capa de ruta
+        function createRouteLayer(routeData, index, pointData) {
+            const color = routeColors[index];
+            const routeName = routeNames[index];
+            
+            // Crear línea de ruta
+            const routeLayer = L.geoJSON(routeData.geometry, {
+                style: {
+                    color: color,
+                    weight: 5,
+                    opacity: 0.8,
+                    dashArray: index === 0 ? '' : '10, 5' // Primera ruta sólida, otras punteadas
+                }
+            }).addTo(routesLayer);
+            
+            // Popup para la línea de ruta
+            const routePopupContent = `
+                <div style="font-family: Arial, sans-serif; min-width: 200px;">
+                    <h4 style="margin: 0 0 10px 0; color: ${color};">${routeName} ruta más corta</h4>
+                    <p style="margin: 5px 0;"><strong>Distancia:</strong> ${routeData.distance.toFixed(2)} km</p>
+                    <p style="margin: 5px 0;"><strong>Destino:</strong> ${pointData.properties['Nombre_com'] || 'Sin nombre'}</p>
+                </div>
+            `;
+            routeLayer.bindPopup(routePopupContent);
+            
+            // Marcador numerado en el destino
+            const destinationMarker = L.marker(routeData.destination, {
+                icon: L.divIcon({
+                    className: 'route-marker',
+                    html: `<div style="
+                        background: ${color}; 
+                        color: white; 
+                        border-radius: 50%; 
+                        width: 30px; 
+                        height: 30px; 
+                        display: flex; 
+                        align-items: center; 
+                        justify-content: center;
+                        font-weight: bold;
+                        font-size: 16px;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                    ">${index + 1}</div>`,
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                })
+            }).addTo(routeMarkers);
+            
+            // Popup para el marcador de destino
+            const destinationPopupContent = `
+                <div style="font-family: Arial, sans-serif; min-width: 200px;">
+                    <h4 style="margin: 0 0 10px 0; color: ${color};">Destino ${index + 1}</h4>
+                    <p style="margin: 5px 0;"><strong>Nombre:</strong> ${pointData.properties['Nombre_com'] || 'Sin nombre'}</p>
+                    <div style="margin: 5px 0; display: flex; align-items: center;">
+                        <span style="margin-right: 10px;"><strong>Numero:</strong> ${pointData.properties['Número__1'] || 'Sin nombre'}</span>
+                        <button onclick="copyText('${pointData.properties['Número__1'] || 'Sin nombre'}')" 
+                                style="padding: 2px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                            Copiar
+                        </button>
+                    </div>
+                    <div style="margin: 5px 0; display: flex; align-items: center;">
+                        <span style="margin-right: 10px;"><strong>Dirección:</strong> ${pointData.properties['Dirección'] || 'No disponible'}</span>
+                        <button onclick="copyText('${pointData.properties['Dirección'] || 'No disponible'}')" 
+                                style="padding: 2px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+                            Copiar
+                        </button>
+                    </div>
+                    <p style="margin: 5px 0;"><strong>Barrio:</strong> ${pointData.properties['Barrio_de'] || 'No disponible'}</p>
+                    <p style="margin: 5px 0;"><strong>Distancia:</strong> ${routeData.distance.toFixed(2)} km</p>
+                </div>
+            `;
+            destinationMarker.bindPopup(destinationPopupContent);
         }
 
         // Obtener ubicación del usuario
@@ -204,47 +403,70 @@
             btn.disabled = true;
             
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    // Eliminar marcador anterior si existe
-                    if (userMarker) {
-                        map.removeLayer(userMarker);
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        // Eliminar marcador anterior si existe
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        
+                        userLocation = [position.coords.latitude, position.coords.longitude];
+                        
+                        // Añadir nuevo marcador del usuario
+                        userMarker = L.marker(userLocation, {
+                            icon: L.divIcon({
+                                className: 'custom-marker',
+                                html: '<div class="marker-dot"></div>',
+                                iconSize: [26, 26],
+                                iconAnchor: [13, 13]
+                            })
+                        }).addTo(map).bindPopup("Tu ubicación actual");
+                        
+                        // Centrar mapa en la ubicación
+                        map.setView(userLocation, 14);
+                        
+                        // Habilitar botón de calcular rutas
+                        document.getElementById('calculateRoutesBtn').disabled = false;
+                        btn.textContent = 'Ubicación obtenida';
+                        btn.disabled = false;
+                        
+                        console.log('Ubicación obtenida:', userLocation);
+                    },
+                    function(error) {
+                        let errorMessage = '';
+                        switch(error.code) {
+                            case error.PERMISSION_DENIED:
+                                errorMessage = 'Permisos de geolocalización denegados';
+                                break;
+                            case error.POSITION_UNAVAILABLE:
+                                errorMessage = 'Ubicación no disponible';
+                                break;
+                            case error.TIMEOUT:
+                                errorMessage = 'Tiempo de espera agotado';
+                                break;
+                            default:
+                                errorMessage = 'Error desconocido';
+                        }
+                        console.error('Error de geolocalización:', errorMessage);
+                        alert('Error al obtener tu ubicación: ' + errorMessage);
+                        btn.textContent = 'Error - Reintentar';
+                        btn.disabled = false;
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 300000,
+                        maximumAge: 300000 // 5 minutos
                     }
-                    
-                    userLocation = [position.coords.latitude, position.coords.longitude];
-                    
-                    // Añadir nuevo marcador
-                    userMarker = L.marker(userLocation, {
-                        icon: L.divIcon({
-                            className: 'custom-marker',
-                            html: '<div class="marker-dot"></div>',
-                            iconSize: [26, 26],
-                            iconAnchor: [13, 13]
-                        })
-                    }).addTo(map).bindPopup("Tu ubicación actual");
-                    
-                    // Centrar mapa en la ubicación
-                    map.setView(userLocation, 14);
-                    
-                    // Habilitar botón de calcular rutas
-                    document.getElementById('calculateRoutesBtn').disabled = false;
-                    btn.textContent = 'Ubicación obtenida';
-                    btn.disabled = false;
-                    
-                    console.log('Ubicación obtenida:', userLocation);
-                }, function(error) {
-                    console.error('Error al obtener ubicación:', error);
-                    btn.textContent = 'Error - Reintentar';
-                    btn.disabled = false;
-                    alert('No se pudo obtener la ubicación. Verifica los permisos del navegador.');
-                });
+                );
             } else {
-                alert('Geolocalización no soportada por este navegador.');
+                console.error('Geolocalización no soportada por el navegador');
+                alert('Tu navegador no soporta geolocalización');
                 btn.textContent = 'No soportado';
             }
         });
 
         // Calcular rutas a los 3 puntos más cercanos
-        document.getElementById('calculateRoutesBtn').addEventListener('click', function() {
+        document.getElementById('calculateRoutesBtn').addEventListener('click', async function() {
             if (!userLocation) {
                 alert('Primero debes obtener tu ubicación');
                 return;
@@ -253,100 +475,87 @@
             const btn = this;
             btn.textContent = 'Calculando rutas...';
             btn.disabled = true;
+            showLoading(true);
             
-            // Limpiar rutas anteriores
-            routesLayer.clearLayers();
-            
-            // Array para almacenar las distancias
-            let distances = [];
-            
-            // Recorrer todos los puntos para calcular distancias
-            layer_Puntos_1.eachLayer(function(layer) {
-                if (layer.getLatLng) {
-                    const destino = layer.getLatLng();
-                    const distance = calculateHaversineDistance(
-                        userLocation[0], userLocation[1],
-                        destino.lat, destino.lng
-                    );
-                    
-                    distances.push({
-                        layer: layer,
-                        distance: distance,
-                        destino: destino
-                    });
-                }
-            });
-            
-            // Ordenar por distancia y obtener los 3 más cercanos
-            distances.sort((a, b) => a.distance - b.distance);
-            const closestPoints = distances.slice(0, 3);
-            
-            console.log('Puntos más cercanos:', closestPoints.map(p => ({
-                name: p.layer.feature.properties.Nombre_com,
-                distance: (p.distance / 1000).toFixed(2) + ' km'
-            })));
-            
-            // Colores para las rutas
-            const routeColors = ['#FF6B6B', '#4ECDC4', '#45B7D1'];
-            
-            // Hacer solicitudes a GraphHopper para cada punto
-            let completedRoutes = 0;
-            
-            closestPoints.forEach((item, index) => {
-                const url = `${openRouteServiceUrl}?start=${userLocation[1]},${userLocation[0]}&end=${item.destino.lng},${item.destino.lat}`;
+            try {
+                // Limpiar rutas y marcadores anteriores
+                routesLayer.clearLayers();
+                routeMarkers.clearLayers();
                 
-                fetch(url)
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.features && data.features.length > 0) {
-                            const route = data.features[0];
-                            const distancia = (route.properties.summary.distance / 1000).toFixed(2);
-                            const duracion = Math.round(route.properties.summary.duration / 60);
-                            
-                            // Crear capa de ruta usando GeoJSON
-                            const routeLayer = L.geoJSON(route.geometry, {
-                                style: {
-                                    color: routeColors[index],
-                                    weight: 5,
-                                    opacity: 0.7
-                                }
-                            }).addTo(routesLayer);
-                            
-                            // Agregar popup con información de distancia
-                            routeLayer.bindPopup(`Ruta ${index + 1} - Distancia: ${distancia} km - Duración: ${duracion} min`);
-                            
-                            // Agregar marcador en el destino
-                            L.marker(item.destino, {
-                                icon: L.divIcon({
-                                    className: 'route-number-marker',
-                                    html: `<div style="background: ${routeColors[index]}; color: white; padding: 5px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">${index + 1}</div>`
-                                })
-                            }).addTo(map).bindPopup(`Ruta ${index + 1} - Destino`);
-                            
-                            console.log(`Ruta ${index + 1}: ${distancia} km, ${duracion} min`);
-                        }
-                        
-                        completedRoutes++;
-                        if (completedRoutes === closestPoints.length) {
-                            btn.textContent = 'Rutas calculadas';
-                            btn.disabled = false;
-                        }
-                    })
-                    .catch(error => {
-                        console.error(`Error al obtener ruta ${index + 1}:`, error);
-                        completedRoutes++;
-                        if (completedRoutes === closestPoints.length) {
-                            btn.textContent = 'Calcular rutas';
-                            btn.disabled = false;
-                        }
-                    });
-            });
+                console.log('Iniciando cálculo de rutas desde:', userLocation);
+                
+                // Obtener 3 puntos más cercanos
+                const closestPoints = getClosestPoints(3);
+                
+                if (closestPoints.length === 0) {
+                    throw new Error('No se encontraron puntos de destino');
+                }
+                
+                console.log(`Calculando rutas a ${closestPoints.length} puntos más cercanos`);
+                
+                // Calcular rutas para todos los puntos
+                const routePromises = closestPoints.map(point => 
+                    getRouteFromOSRM(userLocation, point.destino)
+                );
+                
+                // Esperar a que todas las rutas se calculen
+                const routeResults = await Promise.all(routePromises);
+                
+                // Filtrar rutas válidas y ordenar por distancia real (no línea recta)
+                const validRoutes = routeResults
+                    .map((route, index) => ({
+                        ...route,
+                        pointData: closestPoints[index]
+                    }))
+                    .filter(route => route !== null)
+                    .sort((a, b) => a.distance - b.distance);
+                
+                if (validRoutes.length === 0) {
+                    throw new Error('No se pudieron calcular rutas válidas');
+                }
+                
+                console.log(`Se calcularon ${validRoutes.length} rutas válidas`);
+                
+                // Mostrar las rutas (máximo 3)
+                const routesToShow = validRoutes.slice(0, 3);
+                
+                routesToShow.forEach((routeData, index) => {
+                    createRouteLayer(routeData, index, routeData.pointData);
+                    console.log(`Ruta ${index + 1}: ${routeData.distance.toFixed(2)} km, ${Math.round(routeData.duration)} min`);
+                });
+                
+                // Ajustar la vista del mapa para mostrar todas las rutas
+                const allPoints = [
+                    L.latLng(userLocation[0], userLocation[1]),
+                    ...routesToShow.map(route => L.latLng(route.destination.lat, route.destination.lng))
+                ];
+                const group = new L.featureGroup(allPoints.map(latlng => L.marker(latlng)));
+                map.fitBounds(group.getBounds().pad(0.1));
+                
+                btn.textContent = 'Rutas calculadas';
+                console.log('Rutas calculadas y mostradas exitosamente');
+                
+            } catch (error) {
+                console.error('Error al calcular rutas:', error);
+                alert('Error al calcular las rutas: ' + error.message + '. Por favor, intenta nuevamente.');
+                btn.textContent = 'Error - Reintentar';
+            } finally {
+                showLoading(false);
+                btn.disabled = false;
+            }
         });
         </script>
+    <script>
+        function copyText(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => {
+                    alert('Dirección copiada al portapapeles!');
+                })
+                .catch(err => {
+                    console.error('Error al copiar:', err);
+                    alert('No se pudo copiar la dirección. Por favor, intenta copiar manualmente.');
+                });
+        }
+    </script>
     </body>
 </html>
