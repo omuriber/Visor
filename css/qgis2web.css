@@ -47,16 +47,53 @@
         .leaflet-popup-content td {
             min-width: 75px;
         }
+        /* Estilos para la leyenda */
+        .info.legend {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.2);
+            line-height: 24px;
+            color: #555;
+            font-family: Arial, sans-serif;
+        }
+        .info.legend h4 {
+            text-align: center;
+            margin: 0 0 10px 0;
+            color: #333;
+            font-size: 14px;
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+        .legend-icon {
+            width: 16px;
+            height: 16px;
+            margin-right: 10px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 1px rgba(0,0,0,0.2);
+        }
+        .legend-label {
+            font-size: 13px;
+            color: #555;
+        }
+
         .leaflet-marker-icon {
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .custom-point .point-dot {
-            width: 10px;
-            height: 10px;
-            background: #8fb8ec;
+            width: 12px;
+            height: 12px;
+            background: #987DB7;
             border-radius: 50%;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            border: 1px solid rgb(0, 0, 0);
+            border: 2px solid #fff;
             transition: all 0.3s ease;
         }
         .custom-point .point-dot:hover {
@@ -66,7 +103,7 @@
         .custom-marker .marker-dot {
             width: 20px;
             height: 20px;
-            background: #3e60aa;
+            background: #7B5DA9;
             border-radius: 50%;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             border: 2px solid white;
@@ -246,3 +283,4 @@
             left: 0px;
             z-index: 1000;
         }
+        

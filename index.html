@@ -245,9 +245,24 @@
         map.addLayer(layer_Puntos_1);
         setBounds();
 
+        // Crear y añadir leyenda
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'info legend');
+            div.innerHTML = `
+                <h4>Leyenda</h4>
+                <div class="legend-item">
+                    <div class="legend-icon" style="background-color: #987DB7;"></div>
+                    <span class="legend-label">Grupos</span>
+                </div>
+            `;
+            return div;
+        };
+        legend.addTo(map);
+
         // Variables globales
-        let userLocation = null;
-        let userMarker = null;
+        var startMarker = null;
+        var startPoint = null;  // Coordenadas del punto de inicio seleccionado
         let routesLayer = L.layerGroup().addTo(map);
         let routeMarkers = L.layerGroup().addTo(map);
 
