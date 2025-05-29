@@ -7,8 +7,10 @@
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <link rel="stylesheet" href="css/leaflet.css">
-        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/MarkerCluster.css">
+        <link rel="stylesheet" href="css/MarkerCluster.Default.css">
         <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
         <link rel="stylesheet" href="css/qgis2web.css">
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
         <style>
@@ -28,7 +30,6 @@
     <body>
         <div id="map">
             <div id="controls">
-                <button id="getLocationBtn" class="map-btn">Obtener ubicación</button>
                 <button id="calculateRoutesBtn" class="map-btn" disabled>Calcular rutas</button>
             </div>
             <div id="loadingIndicator" class="loading-indicator">Calculando rutas...</div>
@@ -42,6 +43,7 @@
         <script src="js/leaflet.pattern.js"></script>
         <script src="js/leaflet-hash.js"></script>
         <script src="js/Autolinker.min.js"></script>
+        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
@@ -260,9 +262,165 @@
         };
         legend.addTo(map);
 
+        // Configuración del geocodificador para Colombia
+        var geocoder = L.Control.Geocoder.nominatim({
+            geocodingQueryParams: {
+                'countrycodes': 'co', // Limitar búsqueda a Colombia
+            }
+        });
+
+        // Crear el control de búsqueda
+        var searchControl = L.Control.geocoder({
+            geocoder: geocoder,
+            position: 'topleft',
+            placeholder: 'Buscar ubicación...',
+            defaultMarkGeocode: false,
+            errorMessage: 'No se encontraron resultados',
+            showResultIcons: true,
+            suggestMinLength: 3,
+            queryMinLength: 3,
+            suggestTimeout: 250,
+            collapsed: false
+        }).addTo(map);
+
+        // Agregar botón de ubicación actual al control de búsqueda
+        var searchElement = searchControl.getContainer();
+        var currentLocationButton = document.createElement('button');
+        currentLocationButton.innerHTML = '📍 Ubicación actual';
+        currentLocationButton.className = 'current-location-btn';
+        currentLocationButton.onclick = function() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+                    
+                    // Eliminar marcador anterior si existe
+                    if (window.searchMarker) {
+                        map.removeLayer(window.searchMarker);
+                    }
+
+                    // Crear nuevo marcador
+                    window.searchMarker = L.marker(latlng, {
+                        draggable: true
+                    }).addTo(map);
+
+                    // Configurar el popup del marcador
+                    window.searchMarker.bindPopup('Tu ubicación actual').openPopup();
+
+                    // Habilitar botón de calcular rutas
+                    document.getElementById('calculateRoutesBtn').disabled = false;
+
+                    // Centrar el mapa en la ubicación
+                    map.setView(latlng, 16);
+                }, function(error) {
+                    console.error('Error al obtener la ubicación:', error);
+                    alert('No se pudo obtener tu ubicación. Por favor, verifica que hayas dado permiso para acceder a tu ubicación.');
+                });
+            } else {
+                alert('Tu navegador no soporta geolocalización.');
+            }
+        };
+        searchElement.appendChild(currentLocationButton);
+
+        // Manejar el resultado de la búsqueda
+        searchControl.on('markgeocode', function(e) {
+            console.log('Búsqueda completada:', e);
+            
+            // Eliminar marcador anterior si existe
+            if (window.searchMarker) {
+                map.removeLayer(window.searchMarker);
+            }
+            
+            // Crear nuevo marcador de búsqueda
+            window.searchMarker = L.marker(e.latlng || e.geocode.center, {
+                icon: L.divIcon({
+                    className: 'search-marker',
+                    html: '<div class="point-dot"></div>',
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                }),
+                draggable: true,
+                autoPan: true
+            }).addTo(map)
+            .bindPopup('<b>Ubicación de búsqueda:</b><br>' + e.geocode.name + 
+                     '<br><small>Arrastra para ajustar la posición</small>')
+            .openPopup();
+            
+            // Actualizar el punto de inicio
+            const newPos = window.searchMarker.getLatLng();
+            startPoint = [newPos.lat, newPos.lng];
+            
+            // Habilitar botón de calcular rutas
+            document.getElementById('calculateRoutesBtn').disabled = false;
+            
+            // Actualizar el punto de inicio cuando se mueve el marcador
+            window.searchMarker.on('dragend', function() {
+                const newPos = window.searchMarker.getLatLng();
+                startPoint = [newPos.lat, newPos.lng];
+                window.searchMarker.setPopupContent(
+                    '<b>Ubicación ajustada:</b><br>' + 
+                    'Lat: ' + newPos.lat.toFixed(6) + ', Lng: ' + newPos.lng.toFixed(6) +
+                    '<br><small>Arrastra para ajustar la posición</small>'
+                );
+                
+                // Si ya hay rutas calculadas, actualizarlas
+                if (window.currentRoutes && window.currentRoutes.length > 0) {
+                    calculateRoutesFromPoint(startPoint);
+                }
+            });
+            
+            // Centrar el mapa en la ubicación encontrada
+            map.setView(e.latlng || e.geocode.center, 16);
+            
+            console.log('Marcador de búsqueda colocado en:', startPoint);
+        });
+
+        // Función para calcular rutas desde un punto específico
+        async function calculateRoutesFromPoint(startPoint) {
+            if (!startPoint) return;
+            
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const routesLayer = window.routesLayer || L.layerGroup().addTo(map);
+            window.routesLayer = routesLayer;
+            routesLayer.clearLayers();
+            
+            loadingIndicator.style.display = 'block';
+            
+            try {
+                // Convertir a array [lat, lng] si es un objeto LatLng
+                const startCoords = Array.isArray(startPoint) ? 
+                    startPoint : 
+                    [startPoint.lat, startPoint.lng];
+                
+                // Obtener los 3 puntos más cercanos
+                const closestPoints = getClosestPoints(3, startCoords);
+                
+                // Calcular ruta a cada punto
+                for (let i = 0; i < closestPoints.length; i++) {
+                    const point = closestPoints[i];
+                    const route = await getRouteFromOSRM(
+                        startCoords,
+                        [point.geometry.coordinates[1], point.geometry.coordinates[0]]
+                    );
+                    
+                    if (route) {
+                        createRouteLayer(route, i, point);
+                    }
+                }
+                
+                // Guardar rutas actuales para poder actualizarlas
+                window.currentRoutes = closestPoints;
+                
+            } catch (error) {
+                console.error('Error al calcular rutas:', error);
+                alert('Error al calcular las rutas. Por favor, inténtalo de nuevo.');
+            } finally {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+        
         // Variables globales
-        var startMarker = null;
-        var startPoint = null;  // Coordenadas del punto de inicio seleccionado
+        var startMarker = null;  // Marcador de búsqueda
+        var startPoint = null;   // Coordenadas del punto de inicio seleccionado
         let routesLayer = L.layerGroup().addTo(map);
         let routeMarkers = L.layerGroup().addTo(map);
 
@@ -293,18 +451,23 @@
         }
 
         // Función para obtener puntos más cercanos por distancia en línea recta
-        function getClosestPoints(limit = 3) {
-            if (!userLocation) return [];
+        function getClosestPoints(limit = 3, startPoint = null) {
+            if (!startPoint) return [];
+            const start = startPoint;
             
             return layer_Puntos_1.getLayers()
                 .map(layer => ({
                     layer,
                     destino: layer.getLatLng(),
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [layer.getLatLng().lng, layer.getLatLng().lat]
+                    },
+                    properties: layer.feature.properties,
                     distance: calculateHaversineDistance(
-                        userLocation[0], userLocation[1],
+                        start[0], start[1],
                         layer.getLatLng().lat, layer.getLatLng().lng
-                    ),
-                    properties: layer.feature.properties
+                    )
                 }))
                 .sort((a, b) => a.distance - b.distance)
                 .slice(0, limit);
@@ -411,81 +574,60 @@
             destinationMarker.bindPopup(destinationPopupContent);
         }
 
-        // Obtener ubicación del usuario
-        document.getElementById('getLocationBtn').addEventListener('click', function() {
-            const btn = this;
-            btn.textContent = 'Obteniendo ubicación...';
-            btn.disabled = true;
-            
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        // Eliminar marcador anterior si existe
-                        if (userMarker) {
-                            map.removeLayer(userMarker);
-                        }
-                        
-                        userLocation = [position.coords.latitude, position.coords.longitude];
-                        
-                        // Añadir nuevo marcador del usuario
-                        userMarker = L.marker(userLocation, {
-                            icon: L.divIcon({
-                                className: 'custom-marker',
-                                html: '<div class="marker-dot"></div>',
-                                iconSize: [26, 26],
-                                iconAnchor: [13, 13]
-                            })
-                        }).addTo(map).bindPopup("Tu ubicación actual");
-                        
-                        // Centrar mapa en la ubicación
-                        map.setView(userLocation, 14);
-                        
-                        // Habilitar botón de calcular rutas
-                        document.getElementById('calculateRoutesBtn').disabled = false;
-                        btn.textContent = 'Ubicación obtenida';
-                        btn.disabled = false;
-                        
-                        console.log('Ubicación obtenida:', userLocation);
-                    },
-                    function(error) {
-                        let errorMessage = '';
-                        switch(error.code) {
-                            case error.PERMISSION_DENIED:
-                                errorMessage = 'Permisos de geolocalización denegados';
-                                break;
-                            case error.POSITION_UNAVAILABLE:
-                                errorMessage = 'Ubicación no disponible';
-                                break;
-                            case error.TIMEOUT:
-                                errorMessage = 'Tiempo de espera agotado';
-                                break;
-                            default:
-                                errorMessage = 'Error desconocido';
-                        }
-                        console.error('Error de geolocalización:', errorMessage);
-                        alert('Error al obtener tu ubicación: ' + errorMessage);
-                        btn.textContent = 'Error - Reintentar';
-                        btn.disabled = false;
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 300000,
-                        maximumAge: 300000 // 5 minutos
-                    }
-                );
-            } else {
-                console.error('Geolocalización no soportada por el navegador');
-                alert('Tu navegador no soporta geolocalización');
-                btn.textContent = 'No soportado';
+        // Configurar el marcador de búsqueda
+        function setupSearchMarker(e) {
+            // Eliminar marcador anterior si existe
+            if (window.searchMarker) {
+                map.removeLayer(window.searchMarker);
             }
-        });
+            
+            // Crear nuevo marcador de búsqueda
+            window.searchMarker = L.marker(e.latlng, {
+                icon: L.divIcon({
+                    className: 'search-marker',
+                    html: '<div class="point-dot"></div>',
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
+                }),
+                draggable: true
+            }).addTo(map)
+            .bindPopup('Punto de partida')
+            .openPopup();
+            
+            // Actualizar coordenadas cuando se arrastra el marcador
+            window.searchMarker.on('dragend', function() {
+                const newPos = window.searchMarker.getLatLng();
+                startPoint = [newPos.lat, newPos.lng];
+                
+                // Si hay rutas calculadas, actualizarlas
+                if (window.currentRoutes && window.currentRoutes.length > 0) {
+                    calculateRoutesFromPoint(startPoint);
+                }
+            });
+            
+            // Guardar el punto de inicio
+            startPoint = [e.latlng.lat, e.latlng.lng];
+            
+            // Habilitar botón de calcular rutas
+            document.getElementById('calculateRoutesBtn').disabled = false;
+            
+            console.log('Punto de partida establecido:', startPoint);
+            
+            // Si hay rutas calculadas, actualizarlas
+            if (window.currentRoutes && window.currentRoutes.length > 0) {
+                calculateRoutesFromPoint(startPoint);
+            }
+        }
 
         // Calcular rutas a los 3 puntos más cercanos
         document.getElementById('calculateRoutesBtn').addEventListener('click', async function() {
-            if (!userLocation) {
-                alert('Primero debes obtener tu ubicación');
+            // Verificar que exista un punto de búsqueda
+            if (!window.searchMarker) {
+                alert('Por favor, busca una dirección primero para establecer el punto de partida');
                 return;
             }
+            
+            const startPoint = window.searchMarker.getLatLng();
             
             const btn = this;
             btn.textContent = 'Calculando rutas...';
@@ -497,20 +639,21 @@
                 routesLayer.clearLayers();
                 routeMarkers.clearLayers();
                 
-                console.log('Iniciando cálculo de rutas desde:', userLocation);
+                const startCoords = [startPoint.lat, startPoint.lng];
+                console.log('Iniciando cálculo de rutas desde:', startCoords);
                 
-                // Obtener 3 puntos más cercanos
-                const closestPoints = getClosestPoints(3);
+                // Obtener 3 puntos más cercanos al punto de inicio
+                const closestPoints = getClosestPoints(3, startCoords);
                 
                 if (closestPoints.length === 0) {
                     throw new Error('No se encontraron puntos de destino');
                 }
                 
-                console.log(`Calculando rutas a ${closestPoints.length} puntos más cercanos`);
+                console.log('Puntos más cercanos encontrados:', closestPoints);
                 
-                // Calcular rutas para todos los puntos
+                // Calcular ruta a cada punto
                 const routePromises = closestPoints.map(point => 
-                    getRouteFromOSRM(userLocation, point.destino)
+                    getRouteFromOSRM(startCoords, point.destino)
                 );
                 
                 // Esperar a que todas las rutas se calculen
@@ -540,12 +683,12 @@
                 });
                 
                 // Ajustar la vista del mapa para mostrar todas las rutas
-                const allPoints = [
-                    L.latLng(userLocation[0], userLocation[1]),
-                    ...routesToShow.map(route => L.latLng(route.destination.lat, route.destination.lng))
-                ];
-                const group = new L.featureGroup(allPoints.map(latlng => L.marker(latlng)));
-                map.fitBounds(group.getBounds().pad(0.1));
+                const allPoints = routesToShow.map(route => L.latLng(route.destination.lat, route.destination.lng));
+                if (allPoints.length > 0) {
+                    allPoints.push(window.searchMarker.getLatLng());
+                    const group = new L.featureGroup(allPoints.map(latlng => L.marker(latlng)));
+                    map.fitBounds(group.getBounds().pad(0.1));
+                }
                 
                 btn.textContent = 'Rutas calculadas';
                 console.log('Rutas calculadas y mostradas exitosamente');

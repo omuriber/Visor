@@ -129,6 +129,75 @@
         .fa, .leaflet-container, a {
             color: #444444 !important;
         }
+        /* Estilos para el buscador */
+        .leaflet-control-geocoder {
+            border-radius: 4px;
+            background: white;
+            min-width: 300px;
+        }
+        .leaflet-control-geocoder-form {
+            width: 100%;
+        }
+        .leaflet-control-geocoder-form input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .leaflet-control-geocoder-form input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+        }
+        .leaflet-control-geocoder-icon {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z' fill='%23444'/%3E%3C/svg%3E") !important;
+            background-size: 60%;
+            background-position: center;
+            background-repeat: no-repeat;
+            opacity: 0.7;
+        }
+        .leaflet-control-geocoder-icon:hover {
+            opacity: 1;
+        }
+        .leaflet-control-geocoder-alternatives {
+            width: 100%;
+            border-top: 1px solid #eee;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .leaflet-control-geocoder-alternatives a {
+            display: block;
+            padding: 8px 12px;
+            color: #333;
+            text-decoration: none;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .leaflet-control-geocoder-alternatives a:hover {
+            background-color: #f8f8f8;
+        }
+        .search-marker .point-dot {
+    width: 16px !important;
+    height: 16px !important;
+    background: #e74c3c !important;
+    border-radius: 50% !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    border: 3px solid #fff !important;
+    transition: all 0.3s ease !important;
+}
+
+.search-marker .point-dot:hover {
+    transform: scale(1.2) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3) !important;
+}
+
+/* Estilo para el botón de calcular rutas deshabilitado */
+.map-btn:disabled {
+    background-color: #cccccc !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+}
+
         .leaflet-control-zoom-in, .leaflet-control-zoom-out,
         .leaflet-control-locate a,
         .leaflet-touch .leaflet-control-geocoder-icon,
@@ -271,7 +340,7 @@
         }
         
         #calculateRoutesBtn {
-            top: 70px;
+            top: 10px;
         }
         
         .map-btn:hover {
@@ -282,5 +351,29 @@
             top: 0px;
             left: 0px;
             z-index: 1000;
+        }
+
+        /* Estilos para el botón de ubicación actual */
+        .current-location-btn {
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 8px 12px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            text-align: left;
+            transition: all 0.2s ease;
+        }
+
+        .current-location-btn:hover {
+            background-color: #f5f5f5;
+            border-color: #999;
+        }
+
+        .current-location-btn:active {
+            background-color: #ebebeb;
+            border-color: #666;
         }
         
