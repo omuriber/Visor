@@ -285,43 +285,70 @@
             collapseAfterResult: true
         }).addTo(map);
 
-        // Agregar botón de ubicación actual al control de búsqueda
-        var searchElement = searchControl.getContainer();
-        var currentLocationButton = document.createElement('button');
-        currentLocationButton.innerHTML = '📍 Ubicación actual';
-        currentLocationButton.className = 'current-location-btn';
-        currentLocationButton.onclick = function() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    var latlng = L.latLng(position.coords.latitude, position.coords.longitude);
+        // Crear botón para asignar punto en el centro de la vista
+        var assignPointButton = L.control({position: 'topleft'});
+        assignPointButton.onAdd = function(map) {
+            var div = L.DomUtil.create('div', 'leaflet-bar leaflet-control leaflet-control-custom');
+            div.innerHTML = '<a href="#" title="Asignar punto en el centro de la vista" style="display: block; text-align: center; padding: 3px 0; font-weight: bold;">📍</a>';
+            div.onclick = function(e) {
+                L.DomEvent.stopPropagation(e);
+                L.DomEvent.preventDefault(e);
+                
+                // Obtener el centro de la vista actual
+                var center = map.getCenter();
+                var latlng = L.latLng(center.lat, center.lng);
+                
+                // Eliminar marcador anterior si existe
+                if (window.searchMarker) {
+                    map.removeLayer(window.searchMarker);
+                }
+
+                // Crear nuevo marcador en el centro de la vista
+                window.searchMarker = L.marker(latlng, {
+                    icon: L.divIcon({
+                        className: 'search-marker',
+                        html: '<div class="point-dot"></div>',
+                        iconSize: [16, 16],
+                        iconAnchor: [8, 8]
+                    }),
+                    draggable: true
+                }).addTo(map);
+
+                // Configurar el popup del marcador
+                window.searchMarker.bindPopup(
+                    'Punto asignado<br>' +
+                    'Lat: ' + latlng.lat.toFixed(6) + '<br>' +
+                    'Lng: ' + latlng.lng.toFixed(6) + '<br><br>' +
+                    '<small>Arrastra para ajustar la posición</small>'
+                ).openPopup();
+
+
+                // Habilitar botón de calcular rutas
+                document.getElementById('calculateRoutesBtn').disabled = false;
+                
+                // Actualizar el punto de inicio
+                window.startPoint = [latlng.lat, latlng.lng];
+                
+                // Configurar el evento de arrastre
+                window.searchMarker.on('dragend', function() {
+                    const newPos = window.searchMarker.getLatLng();
+                    window.startPoint = [newPos.lat, newPos.lng];
+                    window.searchMarker.setPopupContent(
+                        'Punto ajustado<br>' +
+                        'Lat: ' + newPos.lat.toFixed(6) + '<br>' +
+                        'Lng: ' + newPos.lng.toFixed(6) + '<br><br>' +
+                        '<small>Arrastra para ajustar la posición</small>'
+                    );
                     
-                    // Eliminar marcador anterior si existe
-                    if (window.searchMarker) {
-                        map.removeLayer(window.searchMarker);
+                    // Si ya hay rutas calculadas, actualizarlas
+                    if (window.currentRoutes && window.currentRoutes.length > 0) {
+                        calculateRoutesFromPoint(window.startPoint);
                     }
-
-                    // Crear nuevo marcador
-                    window.searchMarker = L.marker(latlng, {
-                        draggable: true
-                    }).addTo(map);
-
-                    // Configurar el popup del marcador
-                    window.searchMarker.bindPopup('Tu ubicación actual').openPopup();
-
-                    // Habilitar botón de calcular rutas
-                    document.getElementById('calculateRoutesBtn').disabled = false;
-
-                    // Centrar el mapa en la ubicación
-                    map.setView(latlng, 16);
-                }, function(error) {
-                    console.error('Error al obtener la ubicación:', error);
-                    alert('No se pudo obtener tu ubicación. Por favor, verifica que hayas dado permiso para acceder a tu ubicación.');
                 });
-            } else {
-                alert('Tu navegador no soporta geolocalización.');
-            }
+            };
+            return div;
         };
-        searchElement.appendChild(currentLocationButton);
+        assignPointButton.addTo(map);
 
         // Manejar el resultado de la búsqueda
         searchControl.on('markgeocode', function(e) {

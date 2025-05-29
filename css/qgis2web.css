@@ -386,6 +386,38 @@
             z-index: 1000;
         }
 
+        /* Estilos para el control personalizado de asignar punto */
+.leaflet-control-custom {
+    background: white;
+    border: 2px solid rgba(0,0,0,0.2);
+    border-radius: 4px;
+    padding: 0;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    overflow: hidden;
+    margin-left: 10px;
+    margin-top: 10px;
+}
+
+.leaflet-control-custom a {
+    background-color: #fff;
+    border-radius: 2px;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    display: block;
+    text-decoration: none;
+    color: #333;
+    font-size: 16px;
+    text-align: center;
+}
+
+.leaflet-control-custom a:hover {
+    background-color: #f4f4f4;
+}
+
         /* Estilos para el botón de ubicación actual */
         .current-location-btn {
             background: white;
@@ -398,11 +430,6 @@
             width: 100%;
             text-align: left;
             transition: all 0.2s ease;
-            display: none;
-        }
-
-        .leaflet-control-geocoder-expanded .current-location-btn {
-            display: block;
         }
 
         .current-location-btn:hover {
